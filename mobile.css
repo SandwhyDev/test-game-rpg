@@ -1,0 +1,88 @@
+/* Portrait play: the arena is the movement surface; combat needs no extra tap. */
+.mobile-guide,.mobile-mode,.mobile-tutorial{display:none}
+.game.one-finger{touch-action:none;user-select:none;-webkit-user-select:none}
+.one-finger .hud{pointer-events:none}
+.one-finger .pause-button{pointer-events:auto;width:44px;height:44px}
+.one-finger .mobile-mode{display:flex;align-items:center;gap:7px;left:18px;top:89px;font-size:8px;letter-spacing:1px;color:#c6d4c9}
+.mobile-mode i{width:5px;height:5px;border-radius:50%;background:#9ecab4;box-shadow:0 0 8px #a0d3b855}
+.mobile-mode span{font-size:7px;color:#7faaa7;margin-left:6px;letter-spacing:.8px}
+.one-finger .mobile-tutorial{display:block;text-align:center;margin:22px auto 24px;max-width:310px}
+.one-finger .intro-copy{display:none}
+.mobile-tutorial strong{font-size:12px;font-weight:500;color:#ddd6bb}
+.mobile-tutorial p{font-size:11px;line-height:1.9;color:#b3c8ce;margin:10px 0 5px}
+.mobile-tutorial small{font-size:9px;color:#91aaa9}
+.one-finger .mobile-guide{display:flex;flex-direction:column;align-items:center;gap:7px;position:absolute;left:12px;right:12px;bottom:calc(214px + env(safe-area-inset-bottom));z-index:3;pointer-events:none;text-align:center;transition:opacity .2s}
+.mobile-guide strong{font-size:11px;font-weight:500;letter-spacing:.3px;color:#c6d9d7;text-shadow:0 1px 5px #071219}
+.mobile-guide span{font-size:8px;color:#90adb1}
+.one-finger.steering .mobile-guide{opacity:0}
+.one-finger .touch-controls{display:block;position:absolute;left:calc(50% - 48px);bottom:calc(107px + env(safe-area-inset-bottom));z-index:3;pointer-events:none;opacity:.35}
+.one-finger .touch-controls.active{opacity:.9}
+.one-finger #joystick{width:96px;height:96px;background:#b8dbe510;border-color:#a9cbd545;pointer-events:none}
+.one-finger #joystick i{left:27px;top:27px;background:#b7d4d63a;border:1px solid #c9e4e744}
+.one-finger .skillbar{left:50%;right:auto;bottom:calc(17px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:12px;pointer-events:none}
+.one-finger .skillbar:before{content:'SKILL OTOMATIS';position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:7px;letter-spacing:2px;color:#92aaa7}
+.one-finger .skill[data-action='attack'],.one-finger .skill[data-action='dash'],.one-finger .skill-divider,.one-finger .skill kbd{display:none}
+.one-finger .skill{width:69px;height:58px;border-color:#78968d50;background:linear-gradient(145deg,#20343bed,#11232bec)}
+.one-finger .skill small{font-size:7px;line-height:13px;letter-spacing:.2px}
+.one-finger .skill-icon{font-size:27px;line-height:34px;height:34px}
+.one-finger .skill.cooling:after{inset:9px 0 0}
+.one-finger .skill:disabled{cursor:default}
+.one-finger .toast{bottom:calc(252px + env(safe-area-inset-bottom));font-size:10px;max-width:90%;white-space:normal;text-align:center}
+@media(max-width:700px),(pointer:coarse){
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  .app{max-width:none;padding:0}
+  .topbar{height:calc(52px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 15px 0}
+  .brand{font-size:15px;letter-spacing:2px;gap:8px}
+  .brand-mark{font-size:29px}
+  .brand small,.brand-divider,.local-tag,.chapter-bar,.controls,.bottomline{display:none}
+  .top-actions{gap:8px}
+  .icon-button{min-width:40px;min-height:40px;justify-content:center}
+  .game{height:calc(100svh - 52px - env(safe-area-inset-top));height:calc(100dvh - 52px - env(safe-area-inset-top));min-height:0;aspect-ratio:auto;border:0;box-shadow:none}
+  .game:fullscreen{height:100dvh}
+  #canvas{object-fit:cover}
+  .vignette{box-shadow:inset 0 0 95px 5px #020a1075}
+  .player-hud{left:18px;top:18px;gap:12px}
+  .portrait{width:43px;height:49px;background-size:235px;background-position:-27px -6px}
+  .portrait>span{left:12px}
+  .player-info{width:154px}
+  .player-name{font-size:12px;margin-bottom:5px}
+  .player-name span{display:none}
+  .bar.hp{height:16px}
+  .bar.hp span{font-size:9px;line-height:14px}
+  .bar.mana{height:10px}
+  .bar.mana span{font-size:7px}
+  .pause-button{top:20px;right:14px}
+  .run-stats{left:auto;right:17px;top:77px;font-size:9px;gap:8px}
+  .objective{left:18px;right:18px;top:118px;text-align:left}
+  .objective-label,.objective>div:nth-child(2){display:none}
+  .objective p{justify-content:space-between;font-size:9px;margin:0;padding:9px 0;border-top:1px solid #abc6c51c;letter-spacing:1px}
+  .location{display:none}
+  .one-finger .minimap{display:block;right:14px;top:170px;bottom:auto;width:76px;height:57px;opacity:.9;pointer-events:none}
+  .boss-hud{top:157px;left:18px;right:108px;font-size:7px;letter-spacing:.8px}
+  .announcement{top:29%;font-size:19px;letter-spacing:3px;padding:0 12px}
+  .announcement small{font-size:8px;letter-spacing:1px}
+  .combo{right:20px;top:38%;font-size:25px}
+  .intro-content{padding:20px 12px;width:100%;max-width:430px}
+  h1{font-size:clamp(30px,9.5vw,43px);letter-spacing:4px}
+  .intro-sigil{font-size:54px;margin:15px 0 5px}
+  .intro-eyebrow{font-size:7px;letter-spacing:2px}
+  .subtitle{font-size:9px;letter-spacing:3px}
+  .primary-button{min-height:50px;min-width:250px;font-size:11px}
+  .intro-hint{font-size:7px;letter-spacing:1px}
+  .best{font-size:8px;margin-top:20px}
+  .modal{padding:20px 12px;max-width:100%;max-height:100%;overflow-y:auto}
+  .modal h2{font-size:25px}
+  .modal p{font-size:11px;line-height:1.6}
+  .text-button{min-height:44px;font-size:12px}
+  .upgrade-options{flex-direction:column;gap:10px}
+  .upgrade-options button{width:270px;min-height:72px;padding:15px;gap:9px}
+  .upgrade-options span{display:none}
+  .upgrade-options small{font-size:10px}
+}
+@media(max-height:680px) and (max-width:700px){
+  .one-finger .mobile-guide{bottom:calc(177px + env(safe-area-inset-bottom))}
+  .one-finger .touch-controls{bottom:calc(93px + env(safe-area-inset-bottom));scale:.8}
+  .intro-sigil{font-size:39px;margin:4px 0}
+  .intro-eyebrow{font-size:6px}
+  .best{margin-top:10px}
+}
