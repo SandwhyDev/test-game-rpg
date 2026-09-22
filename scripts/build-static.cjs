@@ -6,7 +6,7 @@ const output = path.join(root, 'dist');
 const files = [
   'index.html', 'style.css', 'mobile.css', 'game.js',
   'assets/reference.jpeg', 'assets/aelith.png',
-  'assets/aelith-actions.png', 'assets/aelith-walk.png'
+  'assets/aelith-actions.png', 'assets/aelith-walk.png', 'assets/aelith-directions.png', 'assets/aelith-directional-attack.png'
 ];
 for (const file of files) {
   const destination = path.join(output, file);

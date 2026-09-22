@@ -16,7 +16,7 @@ Di folder proyek, jalankan `npx vercel`. Login dan ikuti pilihan proyek; ini mem
 
 ## Periksa sebelum deploy
 
-Jalankan `node scripts/build-static.cjs`. Folder `dist` berisi delapan file publik yang diperlukan game. Skrip build hanya menyalin file, tanpa mengubah gameplay atau memasang dependency. `server.js`, tes, dan gambar pemeriksaan tidak masuk hasil deploy.
+Jalankan `node scripts/build-static.cjs`. Folder `dist` berisi sepuluh file publik yang diperlukan game. Skrip build hanya menyalin file, tanpa mengubah gameplay atau memasang dependency. `server.js`, tes, dan gambar pemeriksaan tidak masuk hasil deploy.
 
 Setelah deploy, periksa tombol mulai, gerak satu jari dalam portrait, animasi hero, dan pengambilan orb hijau. Skor terbaik tetap tersimpan per browser/domain; skor dari alamat LAN tidak otomatis pindah ke domain Vercel.
 

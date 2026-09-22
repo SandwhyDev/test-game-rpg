@@ -6,7 +6,7 @@ const lan = process.argv.includes('--lan');
 const host = lan ? '0.0.0.0' : '127.0.0.1';
 const port = lan ? 4174 : 4173;
 // LAN access shares only the game and its assets, not workspace files.
-const publicFiles = new Set(['/index.html','/style.css','/mobile.css','/game.js','/assets/reference.jpeg','/assets/aelith.png','/assets/aelith-actions.png','/assets/aelith-walk.png']);
+const publicFiles = new Set(['/index.html','/style.css','/mobile.css','/game.js','/assets/reference.jpeg','/assets/aelith.png','/assets/aelith-actions.png','/assets/aelith-walk.png','/assets/aelith-directions.png', '/assets/aelith-directional-attack.png']);
 const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png','.jpeg':'image/jpeg','.md':'text/plain; charset=utf-8'};
 http.createServer((req,res)=>{
   let pathname;

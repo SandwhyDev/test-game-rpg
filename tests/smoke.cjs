@@ -30,7 +30,7 @@ const listeners={},storage={};let frame;
 const document={getElementById:element,createElement:()=>element(`created-${elements.size}`),createTextNode:()=>({}),querySelectorAll:s=>s==='.skill'?skillNodes:s==='.skill[data-action]'?skills:s==='.overlay'?overlays:[],addEventListener:(k,f)=>listeners[k]=f};
 const media={matches:false,addEventListener:(type,fn)=>media.change=fn};
 const sandbox={document,window:{addEventListener(){},matchMedia:()=>media},localStorage:{getItem:k=>storage[k],setItem:(k,v)=>storage[k]=v},Image:class{complete=false;naturalWidth=0;},performance:{now:()=>0},requestAnimationFrame:f=>frame=f,getComputedStyle:()=>({objectFit:'contain'}),console,Math};
-const hook=`window.test={WORLD,ARENA,WAVE_COUNTS,waveSpawnPoint,loot:()=>loot,start,update,action,pause,upgrade,hurtPlayer,hurtEnemy,nextWave,render,drawHero,heroPose,heroActions,heroWalk,autoBattle,cameraView,pointerCoordinates,beginSlam,insideSlam,keys,stick,gesture,player:()=>player,enemies:()=>enemies,projectiles:()=>projectiles,setTime:n=>time=n,setWave:n=>wave=n,getPending:()=>pendingUpgrades,clearVisuals:()=>{particles=[];effects=[];texts=[];}};`;
+const hook=`window.test={WORLD,ARENA,WAVE_COUNTS,waveSpawnPoint,loot:()=>loot,start,update,action,pause,upgrade,hurtPlayer,hurtEnemy,nextWave,render,drawHero,heroPose,heroActions,heroWalk,heroDirections,heroDirectionalAttack,updateFacing,turnDelta,autoBattle,cameraView,pointerCoordinates,beginSlam,insideSlam,keys,stick,gesture,player:()=>player,enemies:()=>enemies,projectiles:()=>projectiles,setTime:n=>time=n,setWave:n=>wave=n,getPending:()=>pendingUpgrades,clearVisuals:()=>{particles=[];effects=[];texts=[];}};`;
 const source=fs.readFileSync(require('node:path').join(__dirname,'../game.js'),'utf8').replace('  // A narrow read-only snapshot',hook+'\n  // A narrow read-only snapshot');
 vm.runInNewContext(source,sandbox);const t=sandbox.window.test,snap=sandbox.window.silverveil.snapshot;
 t.start();assert.equal(snap().mode,'playing');assert.equal(snap().enemyCount,12);
@@ -72,14 +72,14 @@ t.start();t.player().x=t.ARENA.maxX;t.keys.add('d');t.update(.1);assert.equal(t.
 console.log('PASS: eight rendered walk frames, facing, keyboard/joystick gait, release/deadzone/walls, diagonal speed, pause, action priority/resume, fallback, restart.');
 
 // A phone requires only movement gestures; combat decisions are state-driven.
-media.matches=true;media.change();assert(element('game').classList.contains('one-finger'));assert(skills.every(b=>b.disabled),'skills become status indicators');
+media.matches=true;media.change();assert(element('game').classList.contains('one-finger'));assert(skills.filter(b=>b.dataset.action!=='attack').every(b=>!b.disabled),'manual skills enabled on mobile');
 function mobileScene(){t.start();for(const e of t.enemies()){e.x=t.ARENA.maxX;e.y=t.ARENA.maxY;e.spawn=0;e.hp=e.maxHp=1000;}}
 mobileScene();let target=t.enemies()[0];target.x=t.player().x+70;target.y=t.player().y;t.autoBattle();assert(target.hp<1000,'automatic melee damage');assert.equal(t.player().animation.type,'attack');
-mobileScene();target=t.enemies()[0];target.x=t.player().x-300;target.y=t.player().y;t.player().angle=0;t.autoBattle();assert.equal(t.player().animation.type,'blade');assert(t.projectiles()[0].vx<0,'ranged auto-aim targets enemy, not movement direction');assert.equal(t.player().mana,75);
-mobileScene();for(const e of t.enemies().slice(0,3)){e.x=t.player().x+55;e.y=t.player().y;}t.autoBattle();assert.equal(t.player().animation.type,'nova');assert.equal(t.player().mana,65);const nova=t.player().animation;t.autoBattle();assert.equal(t.player().animation,nova,'automation does not overwrite an active cast');
+mobileScene();target=t.enemies()[0];target.x=t.player().x-300;target.y=t.player().y;t.player().angle=0;t.autoBattle();assert.equal(t.player().animation,null,'no automatic ranged skill');skills.find(b=>b.dataset.action==='blade').listeners.click();assert.equal(t.player().animation.type,'blade');assert(t.projectiles()[0].vx<0,'ranged auto-aim targets enemy, not movement direction');assert.equal(t.player().mana,75);
+mobileScene();for(const e of t.enemies().slice(0,3)){e.x=t.player().x+55;e.y=t.player().y;}t.autoBattle();assert.equal(t.player().mana,100,'crowd does not trigger automatic skill');skills.find(b=>b.dataset.action==='nova').listeners.click();assert.equal(t.player().animation.type,'nova');assert.equal(t.player().mana,65);const nova=t.player().animation;t.autoBattle();assert.equal(t.player().animation,nova,'automation does not overwrite an active cast');
 mobileScene();t.player().hp=72;t.autoBattle();assert.equal(t.player().potions,0);assert.equal(t.player().hp,72,'no automatic healing');t.autoBattle();assert.equal(t.player().potions,0);mobileScene();t.autoBattle();assert.equal(t.player().mana,100,'no out-of-range skill waste');assert.equal(t.player().animation,null);
 mobileScene();target=t.enemies()[0];target.x=t.player().x+70;target.y=t.player().y;t.player().mana=0;t.autoBattle();assert.equal(t.player().animation.type,'attack','melee works without mana');mobileScene();t.pause();t.player().hp=40;t.autoBattle();assert.equal(t.player().potions,0,'no auto-actions while paused');
-mobileScene();target=t.enemies()[0];target.type='boss';target.tell=.2;target.slamX=t.player().x;target.slamY=t.player().y;t.autoBattle();assert.equal(t.player().animation,null,'idle player must dodge manually');t.stick.x=1;t.autoBattle();assert.equal(t.player().animation.type,'dash','imminent slam assists the selected movement');assert(t.player().invincible>0);
+mobileScene();target=t.enemies()[0];target.type='boss';target.tell=.2;target.slamX=t.player().x;target.slamY=t.player().y;t.autoBattle();assert.equal(t.player().animation,null,'idle player must dodge manually');t.stick.x=1;t.autoBattle();assert.equal(t.player().animation,null,'danger does not trigger auto dash');skills.find(b=>b.dataset.action==='dash').listeners.click();assert.equal(t.player().animation.type,'dash','dash requires tap');assert(t.player().invincible>0);
 
 t.start();const canvasEvents=element('canvas').listeners;
 const finger=(id,x,y)=>({pointerId:id,clientX:x,clientY:y,button:0,isPrimary:true});
@@ -142,3 +142,87 @@ t.player().hp=175;t.loot().push({x:t.player().x,y:t.player().y,type:'health',pha
 const fullOrb={x:t.player().x,y:t.player().y,type:'health',phase:0};t.loot().push(fullOrb);t.update(.01);assert(t.loot().includes(fullOrb));
 t.loot().length=0;t.player().hp=100;for(const e of t.enemies())t.hurtEnemy(e,10000);t.loot().length=0;t.update(.01);assert.equal(t.player().hp,100,'no wave healing');assert.equal(snap().mode,'upgrade');t.upgrade('vitality');assert.equal(t.player().maxHp,220);assert.equal(t.player().hp,100,'no upgrade healing');
 console.log('PASS: pickup-only healing, no magnet, single use, max HP, no wave/upgrade healing.');
+
+// Direction atlas rows follow screen-space movement, with no mirror for back views.
+t.heroDirections.complete=true;t.heroDirections.naturalWidth=1024;t.heroDirections.naturalHeight=2048;
+for(let row=0;row<8;row++){
+  t.start();const angle=row*Math.PI/4;t.stick.x=Math.cos(angle);t.stick.y=Math.sin(angle);
+  for(let i=0;i<30;i++)t.update(.016);
+  assert.equal(t.player().directionRow,row,'all eight directions settle correctly');
+  draws.length=0;t.drawHero();const call=draws.findLast(a=>a[0]===t.heroDirections);assert(call);assert.equal(call[2],row*256);
+  t.stick.x=t.stick.y=0;t.update(.02);assert.equal(t.player().directionRow,row,'idle retains facing');
+}
+t.start();t.player().moveAngle=Math.PI-.02;t.updateFacing(-Math.PI+.02,.016);assert(Math.abs(t.player().moveAngle-Math.PI)<.04,'turn uses short path across angle wrap');
+t.player().moveAngle=0;t.player().directionRow=0;t.updateFacing(Math.PI/8+.02,1);assert.equal(t.player().directionRow,0,'boundary noise does not flicker');
+t.start();t.keys.add('d');const frames=new Set();for(let i=0;i<16;i++){t.update(.04);draws.length=0;t.drawHero();frames.add(draws.findLast(a=>a[0]===t.heroDirections)[1]);}assert.equal(frames.size,4,'four gait cells rendered');
+t.action('attack');draws.length=0;t.drawHero();assert(draws.some(a=>a[0]===t.heroDirections),'moving attack retains directional body');
+t.player().moving=false;draws.length=0;t.drawHero();assert(draws.some(a=>a[0]===t.heroActions),'stationary attack retains detailed action poses');
+console.log('PASS: eight rendered directions, idle facing, shortest turn, jitter guard, gait, attack priority.');
+
+// Mobile combat must not replace movement facing with the old two-way atlas.
+media.matches=true;media.change();
+for(let row=0;row<8;row++){
+  t.start();const a=row*Math.PI/4;t.stick.x=Math.cos(a);t.stick.y=Math.sin(a);
+  for(const enemy of t.enemies()){enemy.spawn=100;}
+  for(let i=0;i<30;i++)t.update(.016);
+  for(const skill of ['attack','nova','blade','dash']){
+    t.player().animation=null;t.player().mana=100;t.player().cooldowns[skill]=0;t.action(skill,0);
+    draws.length=0;t.drawHero();const call=draws.findLast(args=>args[0]===t.heroDirections);
+    assert(call,`${skill} while moving uses direction atlas`);assert.equal(call[2],row*256);
+  }
+}
+console.log('PASS: mobile movement keeps eight-direction sprites during attack, nova, blade and dash.');
+
+// Real attack frames must advance independently of gait while moving in every direction.
+t.heroDirectionalAttack.complete=true;t.heroDirectionalAttack.naturalWidth=1024;t.heroDirectionalAttack.naturalHeight=1024;
+media.matches=false;media.change();
+for(let row=0;row<8;row++)for(const skill of ['attack','blade','nova']){
+  t.start();for(const e of t.enemies())e.spawn=100;
+  const a=row*Math.PI/4;t.player().moveAngle=a;t.player().directionRow=row;t.stick.x=Math.cos(a);t.stick.y=Math.sin(a);t.update(.016);
+  t.action(skill,a);const animation=t.player().animation;const cells=new Set();const startX=t.player().x,startY=t.player().y;
+  for(const fraction of [0,.25,.55,.85]){
+    animation.elapsed=animation.duration*fraction;t.update(.001);draws.length=0;t.drawHero();
+    const call=draws.findLast(args=>args[0]===t.heroDirectionalAttack);assert(call,`${skill} uses moving attack poses`);
+    assert.equal(call[2],[0,1,2,1,0,3,3,3][row]*256);cells.add(call[1]);assert(!draws.some(args=>args[0]===t.heroDirections),'gait does not overwrite attack');
+  }
+  assert.equal(cells.size,4,'windup, strike, follow-through and recovery rendered');
+  assert(Math.hypot(t.player().x-startX,t.player().y-startY)>0,'movement continues during attack');
+  t.pause();const elapsed=animation.elapsed;t.drawHero();assert.equal(animation.elapsed,elapsed);t.pause();
+  t.update(animation.duration);draws.length=0;t.drawHero();assert(draws.some(args=>args[0]===t.heroDirections),'walk resumes after attack');
+}
+console.log('PASS: four moving attack phases in eight directions, movement, pause and return to gait.');
+
+media.matches=true;media.change();t.start();
+const controlEvents=element('canvas').listeners;
+controlEvents.pointerdown(finger(51,150,450));controlEvents.pointermove(finger(51,182,450));
+const novaButton=skills.find(b=>b.dataset.action==='nova');let stopped=false;
+novaButton.listeners.pointerdown({pointerType:'touch',preventDefault(){},stopPropagation(){stopped=true;}});
+assert(stopped);assert.equal(t.player().animation.type,'nova');assert.equal(t.gesture.id,51);assert.equal(t.stick.x,1,'skill touch preserves movement pointer');
+const mana=t.player().mana;novaButton.listeners.click();assert.equal(t.player().mana,mana,'synthetic click cannot cast twice');
+controlEvents.pointerup(finger(51,182,450));t.pause();t.player().cooldowns.nova=0;novaButton.listeners.click();assert.equal(t.player().mana,mana,'paused skills cannot cast');t.pause();
+console.log('PASS: manual skill touch with active movement, no duplicate cast and pause guard.');
+
+// XP choices wait until combat ends; all queued choices precede the next spawn.
+media.matches=false;media.change();t.start();
+for(const e of t.enemies().slice(0,5))t.hurtEnemy(e,10000);
+t.update(.01);assert(t.getPending()>0);assert.equal(snap().mode,'playing','level-up does not interrupt combat');assert(t.enemies().length>0);
+for(const e of t.enemies())t.hurtEnemy(e,10000);t.update(.01);
+assert.equal(snap().mode,'upgrade');assert.equal(snap().wave,1);assert.equal(t.enemies().length,0);assert.equal(t.projectiles().length,0);
+const count=t.getPending();assert(count>1,'several earned upgrades queued');const beforeTime=snap().time;frame(5000);assert.equal(snap().time,beforeTime,'choice freezes simulation');
+t.upgrade('invalid');assert.equal(t.getPending(),count);
+for(let i=count;i>0;i--){assert.equal(snap().mode,'upgrade');t.upgrade('power');assert.equal(t.getPending(),i-1);assert.equal(snap().wave,1);assert.equal(t.enemies().length,0);}
+assert.equal(snap().mode,'playing');t.update(1);assert.equal(snap().wave,1,'short preparation period after choosing');for(let i=0;i<60;i++)t.update(.04);assert.equal(snap().wave,2,'next wave starts after choices and preparation');
+t.start();assert.equal(t.getPending(),0,'restart clears earned choices');
+console.log('PASS: uninterrupted combat, queued pre-wave upgrades, frozen choices, preparation delay and restart.');
+
+// Killing the boss first must remove its HUD while the final soldier keeps fighting.
+media.matches=false;media.change();t.start();t.enemies().length=0;t.setWave(4);t.nextWave();t.update(.01);
+assert(!element('bossHud').classList.contains('hidden'),'live boss bar visible');
+const finalBoss=t.enemies().find(e=>e.type==='boss'),soldier=t.enemies().find(e=>e.type!=='boss');
+for(const e of t.enemies())if(e!==soldier)t.hurtEnemy(e,10000);
+t.update(.01);assert.equal(snap().mode,'playing');assert.equal(snap().enemyCount,1);
+assert(element('bossHud').classList.contains('hidden'),'dead boss bar hidden with soldier remaining');assert.equal(element('bossFill').style.width,'0%');
+assert(element('objectiveText').textContent.includes('prajurit'),'objective explains remaining soldier');
+t.hurtEnemy(soldier,10000);t.update(.01);assert.equal(snap().mode,'victory');assert(element('bossHud').classList.contains('hidden'));
+t.start();t.enemies().length=0;t.setWave(4);t.nextWave();t.update(.01);assert(!element('bossHud').classList.contains('hidden'));assert.equal(element('bossFill').style.width,'100%','fresh boss HUD restored');
+console.log('PASS: boss dies before soldier, hidden/reset boss HP, remaining objective, victory and new boss.');

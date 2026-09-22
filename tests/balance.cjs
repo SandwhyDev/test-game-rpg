@@ -16,6 +16,18 @@ function run(seed,move){
       if(health&&p.hp<p.maxHp-24){dx=health.x-p.x;dy=health.y-p.y;}
       const length=Math.hypot(dx,dy);t.stick.x=dx/Math.max(32,length);t.stick.y=dy/Math.max(32,length);
     }
+    // Simulate an active player's explicit skill taps; the game does not auto-cast.
+    if(move){
+      const p=t.player(),active=t.enemies().filter(e=>e.hp>0&&e.spawn<=0);
+      const d=e=>Math.hypot(e.x-p.x,e.y-p.y),target=active.sort((a,b)=>d(a)-d(b))[0];
+      const danger=active.find(e=>e.tell>0&&e.tell<.25&&t.insideSlam(e));
+      if(danger&&p.cooldowns.dash<=0)t.action('dash');
+      else if(!p.animation&&target){
+        const angle=Math.atan2(target.y-p.y,target.x-p.x),near=active.filter(e=>d(e)<190+e.r);
+        if(p.cooldowns.nova<=0&&p.mana>=35&&(near.length>=3||near.some(e=>e.type==='boss')||(p.hp<p.maxHp*.5&&near.length)))t.action('nova',angle);
+        else if(p.cooldowns.blade<=0&&p.mana>=25&&d(target)<420&&(d(target)>112+target.r||target.type==='boss'))t.action('blade',angle);
+      }
+    }
     t.update(1/60);if(tick%30===0)t.clearVisuals();
   }
   const s=snap();return {seed,policy:move?'moving':'idle',mode:s.mode,wave:s.wave,kills:s.kills,seconds:Math.round(s.time),hp:s.player.hp};

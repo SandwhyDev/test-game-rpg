@@ -15,6 +15,15 @@
   const heroImage = new Image(); heroImage.src = 'assets/aelith.png';
   const heroActions = new Image(); heroActions.src = 'assets/aelith-actions.png';
   const heroWalk = new Image(); heroWalk.src = 'assets/aelith-walk.png';
+  const heroDirections = new Image(); heroDirections.src = 'assets/aelith-directions.png';
+  const heroDirectionalAttack = new Image(); heroDirectionalAttack.src = 'assets/aelith-directional-attack.png';
+  const turnDelta=(from,to)=>Math.atan2(Math.sin(to-from),Math.cos(to-from));
+  function updateFacing(angle,dt){
+    player.moveAngle+=turnDelta(player.moveAngle,angle)*(1-Math.exp(-18*dt));
+    // Hysteresis prevents tiny joystick noise from flickering adjacent views.
+    if(Math.abs(turnDelta(player.directionRow*Math.PI/4,player.moveAngle))>Math.PI/8+.06)
+      player.directionRow=((Math.round(player.moveAngle/(Math.PI/4))%8)+8)%8;
+  }
   // Atlas cells: ready, windup, slash, follow-through, dash, raise, slam, thrust.
   const actionFrames = {
     attack: [[0,1],[.18,2],[.58,3],[.94,0]],
@@ -41,7 +50,7 @@
   const pillars = [{x:145,y:285},{x:2415,y:285},{x:145,y:1210},{x:2415,y:1210},{x:700,y:270},{x:1860,y:270},{x:700,y:1230},{x:1860,y:1230}];
 
   function resetPlayer() {
-    player = {x:WORLD.cx,y:WORLD.cy,hp:180,maxHp:180,mana:100,maxMana:100,power:1,regen:7,level:1,xp:0,nextXp:70,potions:0,speed:200,face:1,angle:0,invincible:0,dashTime:0,dashX:1,dashY:0,walk:0,stride:0,moving:false,animation:null,cooldowns:{attack:0,dash:0,nova:0,blade:0,potion:0}};
+    player = {x:WORLD.cx,y:WORLD.cy,hp:180,maxHp:180,mana:100,maxMana:100,power:1,regen:7,level:1,xp:0,nextXp:70,potions:0,speed:200,face:1,angle:0,moveAngle:Math.PI/2,directionRow:2,invincible:0,dashTime:0,dashX:1,dashY:0,walk:0,stride:0,moving:false,animation:null,cooldowns:{attack:0,dash:0,nova:0,blade:0,potion:0}};
   }
   resetPlayer();
 
@@ -237,12 +246,19 @@
     else if(mode==='paused'){mode='playing';$('pauseOverlay').classList.add('hidden');}
   }
   function upgrade(choice) {
-    if(mode!=='upgrade')return;
+    if(mode!=='upgrade'||!['power','vitality','spirit'].includes(choice))return;
     if(choice==='power')player.power*=1.2;
     if(choice==='vitality'){player.maxHp+=40;}
     if(choice==='spirit'){player.regen*=1.4;player.mana=100;}
-    pendingUpgrades--;mode='playing';$('upgradeOverlay').classList.add('hidden');
+    pendingUpgrades--;
+    if(pendingUpgrades>0)showUpgrades();
+    else {mode='playing';$('upgradeOverlay').classList.add('hidden');}
     burst(player.x,player.y,'#d8c68f',30,100);beep(440,.25,'sine',.04,880);updateHud();
+  }
+  function showUpgrades(){
+    mode='upgrade';keys.clear();pointer.held=false;releaseStick();
+    $('upgradeCopy').textContent=`Persiapan gelombang ${wave+1} · ${pendingUpgrades} pilihan kekuatan tersisa`;
+    $('upgradeOverlay').classList.remove('hidden');
   }
 
   function insideSlam(e,point=player){return Math.hypot(point.x-e.slamX,(point.y-e.slamY)/.65)<e.slamRadius+12;}
@@ -254,20 +270,11 @@
   function autoBattle() {
     if(!oneFinger||mode!=='playing')return;
     const cd=player.cooldowns;
-    // Assist the chosen movement direction; never dodge for an idle player.
-    const steering=Math.hypot(stick.x,stick.y)>.1||['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k=>keys.has(k));
-    const danger=enemies.find(e=>e.hp>0&&e.tell>0&&e.tell<.25&&insideSlam(e));
-    if(danger&&cd.dash<=0&&steering){
-      action('dash');return;
-    }
     if(player.animation)return;
     const active=enemies.filter(e=>e.hp>0&&e.spawn<=0);
     const target=active.reduce((best,e)=>!best||distance(player,e)<distance(player,best)?e:best,null);
     if(!target)return;
     const d=distance(player,target),a=Math.atan2(target.y-player.y,target.x-player.x);
-    const nearby=active.filter(e=>distance(player,e)<190+e.r);
-    if(cd.nova<=0&&player.mana>=35&&(nearby.length>=3||nearby.some(e=>e.type==='boss')||(player.hp<player.maxHp*.5&&nearby.length))){action('nova',a);return;}
-    if(cd.blade<=0&&player.mana>=25&&d<420&&(d>112+target.r||target.type==='boss')){action('blade',a);return;}
     if(cd.attack<=0&&d<112+target.r)action('attack',a);
   }
   function update(dt) {
@@ -285,6 +292,7 @@
     player.x=clamp(player.x+dx*player.speed*dt,ARENA.minX,ARENA.maxX);player.y=clamp(player.y+dy*player.speed*dt,ARENA.minY,ARENA.maxY);
     const traveled=Math.hypot(player.x-oldX,player.y-oldY);
     player.moving=traveled>.001;player.walk+=dt*(player.moving?12:2);
+    if(player.moving)updateFacing(Math.atan2(dy,dx),dt);
     // Distance drives the gait, so slow joystick motion and diagonal movement
     // keep the same stride length. A wall or released input stops the feet.
     if(!player.moving)player.stride=0;
@@ -339,10 +347,10 @@
     if(announceUntil<time)$('announcement').classList.remove('show');
     if(!enemies.length){
       if(wave===5){finish(true);return;}
-      if(waveDelay<0){waveDelay=3;player.mana=100;announce('GELOMBANG SELESAI','Mana penuh · Ambil orb hijau untuk pulihkan HP');}
+      if(waveDelay<0){waveDelay=3;player.mana=100;projectiles=[];announce('GELOMBANG SELESAI','Mana penuh · Ambil orb hijau untuk pulihkan HP');}
+      if(pendingUpgrades>0)showUpgrades();
       else {waveDelay-=dt;if(waveDelay<=0)nextWave();}
     }
-    if(pendingUpgrades>0){mode='upgrade';keys.clear();pointer.held=false;releaseStick();$('upgradeOverlay').classList.remove('hidden');}
     updateHud();
   }
   function updateHud() {
@@ -352,9 +360,11 @@
     $('score').textContent=score.toLocaleString('id-ID');$('timer').textContent=clock(time);$('potions').textContent=player.potions;
     $('waveText').textContent=`GELOMBANG ${String(wave||1).padStart(2,'0')} / 05`;
     $('enemyText').textContent=mode==='intro'?'Menanti kesatria':`${enemies.length} musuh tersisa`;
-    $('objectiveText').textContent=wave===5?'Kalahkan Vorath, The Hollow King':'Bertahan di Forsaken Sanctum';
+    const boss=enemies.find(e=>e.type==='boss'&&e.hp>0);
+    $('objectiveText').textContent=wave===5?(boss?'Kalahkan Vorath, The Hollow King':mode==='victory'?'Seluruh musuh telah dikalahkan':'Raja gugur — kalahkan prajurit yang tersisa'):'Bertahan di Forsaken Sanctum';
     $('combo').innerHTML=combo>=3?`${combo}<small>HIT COMBO</small>`:'';
-    const boss=enemies.find(e=>e.type==='boss');if(boss)$('bossFill').style.width=`${Math.max(0,boss.hp/boss.maxHp*100)}%`;
+    $('bossHud').classList.toggle('hidden',!boss);
+    $('bossFill').style.width=boss?`${clamp(boss.hp/boss.maxHp*100,0,100)}%`:'0%';
     const total={attack:.46,dash:1.65,nova:7,blade:3.5,potion:1};
     for(const b of skillButtons){const a=b.dataset.action,n=player.cooldowns[a];b.querySelector('i').style.height=`${n/total[a]*100}%`;b.classList.toggle('cooling',n>.1&&a!=='attack');b.dataset.cooldown=n.toFixed(1);b.classList.toggle('unavailable',(a==='nova'&&player.mana<35)||(a==='blade'&&player.mana<25)||(a==='potion'&&!player.potions));}
   }
@@ -416,14 +426,32 @@
   function drawHero() {
     const p=player,pose=heroPose();
     ellipse(p.x,p.y+3,25,9,'#020e17a0');glow(p.x,p.y-4,47,'#94ddec19');
-    ctx.save();ctx.translate(p.x+pose.x,p.y+pose.y);ctx.scale(pose.face,1);
+    // Movement and combat have independent clocks: an attack must animate
+    // its sword poses even while the movement input remains held.
+    const movingStrike=p.moving&&p.animation&&['attack','blade','nova'].includes(p.animation.type)
+      &&heroDirectionalAttack.complete&&heroDirectionalAttack.naturalWidth>0;
+    const directional=(p.moving||!p.animation)&&heroDirections.complete&&heroDirections.naturalWidth>0;
+    ctx.save();ctx.translate(p.x+pose.x,p.y+pose.y);ctx.scale(movingStrike?([3,4,5].includes(p.directionRow)?-1:1):directional?(p.directionRow===5?-1:1):pose.face,1);
     if(oneFinger)ctx.scale(.9,.9);
     ctx.rotate(pose.rotation);ctx.scale(pose.sx,pose.sy);
     if(p.invincible>0&&Math.floor(ambientTime*18)%2)ctx.globalAlpha=.5;
     const walking=pose.atlas==='walk'&&heroWalk.complete&&heroWalk.naturalWidth>0;
     const atlas=walking?heroWalk:heroActions;
     const spriteFrame=walking||pose.atlas==='action'?pose.frame:0;
-    if(atlas.complete&&atlas.naturalWidth){
+    if(movingStrike){
+      const cw=heroDirectionalAttack.naturalWidth/4,ch=heroDirectionalAttack.naturalHeight/4;
+      const row=[0,1,2,1,0,3,3,3][p.directionRow];
+      const progress=clamp(p.animation.elapsed/p.animation.duration,0,1);
+      const frame=progress<.18?0:progress<.48?1:progress<.78?2:3,size=170;
+      // The extended blade in column two slightly overlaps the next cell's
+      // empty left gutter. Exclude that gutter without shifting the body.
+      const inset=frame===2?.14:0;
+      ctx.drawImage(heroDirectionalAttack,(frame+inset)*cw,row*ch,cw*(1-inset),ch,-size*.5+size*inset,-size*.97,size*(1-inset),size);
+    }else if(directional){
+      const cw=heroDirections.naturalWidth/4,ch=heroDirections.naturalHeight/8;
+      const frame=p.moving?Math.floor(p.stride*4)%4:1,size=136;
+      ctx.drawImage(heroDirections,frame*cw,p.directionRow*ch,cw,ch,-size*.5,-size*.94,size,size);
+    }else if(atlas.complete&&atlas.naturalWidth){
       const cw=atlas.naturalWidth/4,ch=atlas.naturalHeight/2;
       // Match body scale and foot baseline across the illustrated keyframes;
       // the overhead sword occupies extra space in the nova charging cell.
@@ -573,7 +601,18 @@
   $('startBtn').addEventListener('click',start);$('resumeBtn').addEventListener('click',pause);$('pauseBtn').addEventListener('click',pause);
   document.querySelectorAll('.restart').forEach(b=>b.addEventListener('click',start));
   document.querySelectorAll('[data-upgrade]').forEach(b=>b.addEventListener('click',()=>upgrade(b.dataset.upgrade)));
-  skillButtons.forEach(b=>b.addEventListener('click',()=>{pointer.aiming=false;action(b.dataset.action);}));
+  function useSkillButton(button){
+    pointer.aiming=false;
+    const name=button.dataset.action,target=oneFinger&&name==='blade'?nearestEnemy(420):null;
+    action(name,target?Math.atan2(target.y-player.y,target.x-player.x):undefined);
+  }
+  skillButtons.forEach(b=>{
+    b.addEventListener('click',()=>useSkillButton(b));
+    b.addEventListener('pointerdown',e=>{
+      if(e.pointerType!=='touch')return;
+      e.preventDefault();e.stopPropagation();useSkillButton(b);
+    });
+  });
   $('soundBtn').addEventListener('click',enableAudio);
   $('fullBtn').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('game').requestFullscreen();}catch{toast('Layar penuh tidak tersedia di browser ini.');}});
   const joystick=$('joystick');
@@ -595,8 +634,8 @@
   function configureControls(){
     oneFinger=Boolean(mobileQuery?.matches);releaseStick();keys.clear();pointer.held=false;pointer.aiming=false;
     $('game').classList.toggle('one-finger',oneFinger);
-    for(const b of skillButtons)b.disabled=oneFinger;
-    canvas.setAttribute('aria-label',oneFinger?'Arena pertarungan. Geser satu jari untuk bergerak. Serangan dan skill otomatis. Ambil orb hijau untuk memulihkan HP.':'Arena pertarungan. WASD bergerak, J menyerang, Spasi dash, Q dan E skill.');
+    for(const b of skillButtons)b.disabled=oneFinger&&b.dataset.action==='attack';
+    canvas.setAttribute('aria-label',oneFinger?'Arena pertarungan. Geser satu jari untuk bergerak. Serangan biasa otomatis. Ketuk tombol kanan untuk dash dan skill. Ambil orb hijau untuk memulihkan HP.':'Arena pertarungan. WASD bergerak, J menyerang, Spasi dash, Q dan E skill.');
   }
   configureControls();mobileQuery?.addEventListener('change',configureControls);
   // A narrow read-only snapshot makes smoke checks possible without altering the game.

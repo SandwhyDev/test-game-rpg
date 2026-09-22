@@ -1,4 +1,4 @@
-/* Portrait play: the arena is the movement surface; combat needs no extra tap. */
+/* Portrait play: the arena is the movement surface; basic attacks are automatic; skills are tapped. */
 .mobile-guide,.mobile-mode,.mobile-tutorial{display:none}
 .game.one-finger{touch-action:none;user-select:none;-webkit-user-select:none}
 .one-finger .hud{pointer-events:none}
@@ -11,7 +11,7 @@
 .mobile-tutorial strong{font-size:12px;font-weight:500;color:#ddd6bb}
 .mobile-tutorial p{font-size:11px;line-height:1.9;color:#b3c8ce;margin:10px 0 5px}
 .mobile-tutorial small{font-size:9px;color:#91aaa9}
-.one-finger .mobile-guide{display:flex;flex-direction:column;align-items:center;gap:7px;position:absolute;left:12px;right:12px;bottom:calc(214px + env(safe-area-inset-bottom));z-index:3;pointer-events:none;text-align:center;transition:opacity .2s}
+.one-finger .mobile-guide{display:flex;flex-direction:column;align-items:center;gap:7px;position:absolute;left:12px;right:96px;bottom:calc(214px + env(safe-area-inset-bottom));z-index:3;pointer-events:none;text-align:center;transition:opacity .2s}
 .mobile-guide strong{font-size:11px;font-weight:500;letter-spacing:.3px;color:#c6d9d7;text-shadow:0 1px 5px #071219}
 .mobile-guide span{font-size:8px;color:#90adb1}
 .one-finger.steering .mobile-guide{opacity:0}
@@ -19,10 +19,10 @@
 .one-finger .touch-controls.active{opacity:.9}
 .one-finger #joystick{width:96px;height:96px;background:#b8dbe510;border-color:#a9cbd545;pointer-events:none}
 .one-finger #joystick i{left:27px;top:27px;background:#b7d4d63a;border:1px solid #c9e4e744}
-.one-finger .skillbar{left:50%;right:auto;bottom:calc(17px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;gap:12px;pointer-events:none}
-.one-finger .skillbar:before{content:'SKILL OTOMATIS';position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:7px;letter-spacing:2px;color:#92aaa7}
-.one-finger .skill[data-action='attack'],.one-finger .skill[data-action='dash'],.one-finger .skill-divider,.one-finger .skill kbd{display:none}
-.one-finger .skill{width:69px;height:58px;border-color:#78968d50;background:linear-gradient(145deg,#20343bed,#11232bec)}
+.one-finger .skillbar{left:auto;right:calc(16px + env(safe-area-inset-right));bottom:calc(clamp(100px,18dvh,180px) + env(safe-area-inset-bottom));transform:none;display:flex;flex-direction:column;gap:10px;pointer-events:auto;touch-action:none}
+.one-finger .skillbar:before{content:'TAP SKILL';position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:7px;letter-spacing:2px;color:#92aaa7}
+.one-finger .skill[data-action='attack'],.one-finger .skill.pickup,.one-finger .skill-divider,.one-finger .skill kbd{display:none}
+.one-finger .skill{width:60px;height:60px;pointer-events:auto;touch-action:none;border-color:#78968d50;background:linear-gradient(145deg,#20343bed,#11232bec)}
 .one-finger .skill small{font-size:7px;line-height:13px;letter-spacing:.2px}
 .one-finger .skill-icon{font-size:27px;line-height:34px;height:34px}
 .one-finger .skill.cooling:after{inset:9px 0 0}
